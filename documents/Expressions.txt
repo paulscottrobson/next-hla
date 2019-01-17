@@ -1,0 +1,63 @@
+Expressions
+===========
+
+Sequence of the following :
+
+Terms
+=====
+
+	<variable>					contents
+	@<variable>					address
+	<constant>					constant
+	"xxxxx"						asciiz strings
+
+Operators
+=========
+
+All operators are binary
+
++ - * / 						arithmetic
+& | ^							binary (values, not logical)
+@ 								indirect lookup 
+!								indirect write to rhs
+>								direct write to rhs (constant causes error)
+
+Identifiers
+===========
+
+first character _ a-z
+remainder 		_ . a-z 0-9
+
+Constants
+=========
+
+?
+
+Variables
+=========
+
+Defined by local <var> and global <var> in source.
+
+Procedures
+==========
+
+procedures are defined with proc <name>(<parameter list>) 
+endproc compiles return, it does not enclose procedure code
+procedures are called with <name>(<terms>)	
+return values are through the HL trick.
+all procedures xxxx_boot() are called without parameters, in order, in the main program.
+
+xxxx.boot(a,b,c) may be used for oop extension, where it is syntactically changed to 
+<type>.boot(xxxx,a,b,c)
+
+Typing mechanism ? class object reserved as keywords.
+
+Structures
+==========
+while(expr[#<=]0):endwhile						Conditional loop
+if(expr[#<=0]):endif							Code test
+for(expr):next 									Repeat n times, available at loop start.
+
+: or new line seperates instructions
+// is a comment.
+
