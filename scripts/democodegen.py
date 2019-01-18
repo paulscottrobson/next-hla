@@ -38,31 +38,38 @@ class DemoCodeGenerator(object):
 	#		Do a binary operation on a constant or variable on the accumulator
 	#
 	def binaryOperation(self,operator,isConstant,value):
-		if operator == "!":
+		if operator == "?":
 			self.binaryOperation("+",isConstant,value)
 			print("${0:06x}  lda.w [a]".format(self.pc))
 			self.pc += 1
 		elif operator == ">":
-			if isConstant:
-				print("${0:06x}  sta   (${1:04x})".format(self.pc,value))
-				self.pc += 2
-			else:
-				print("${0:06x}  lda   (${1:04x})".format(self.pc,value))
-				print("${0:06x}  sta.w [x]\n".format(self.pc+1))
-				self.pc += 2
+			assert not isConstant
+			print("${0:06x}  sta   (${1:04x})".format(self.pc,value))
+			self.pc += 1
+		elif operator == "!":
+			print("${0:06x}  tab".format(self.pc+1))
+			self.pc += 1
+			self.loadDirect(isConstant,value)
+			print("${0:06x}  stb   [a]".format(self.pc+1))
+			self.pc += 1
 		else:					
 			src = ("#${0:04x}" if isConstant else "(${0:04x})").format(value)
 			print("${0:06x}  {1}   {2}".format(self.pc,self.ops[operator],src))
 			self.pc += 1
 	#
-	#	Compile a loop instruction. Test are z, nz, p or "" (unconditional). The compilation
-	#	address can be overridden to patch forward jumps.
+	#	Compile a loop instruction. Test are z, nz, p or "" (unconditional). No target
+	#	address is provided at compile time.
 	#
-	def jumpInstruction(self,test,target,override = None):
-		if override is None:
-			override = self.pc
-			self.pc += 1
-		print("${0:06x}  jmp   {1}${2:06x}".format(override,test+"," if test != "" else "",target))
+	def jumpInstruction(self,test):
+		print("${0:06x}  jmp   {1}?????".format(override,test+"," if test != "" else ""))
+		jumpAddress = self.pc
+		self.pc += 1
+		return jumpAddress
+	#
+	#		Set Jump Address for a jump already compile.
+	#
+	def setJumpAddress(self,jumpAddress,target):
+		print("${0:06x}  patch to ${1:06x}".format(jumpAddress,target))
 	#
 	#		Allocate count bytes of meory, default is word size
 	#

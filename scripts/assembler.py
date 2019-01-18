@@ -31,7 +31,7 @@ class AssemblerWorker(object):
 		self.codeGen = codeGen 												# code generator.
 		self.globals = {}													# global identifiers.
 		self.rxIdentifier = "[\$a-z][a-z0-9\_\.]*"							# identifier rx match
-		self.keywords = "endproc"
+		self.keywords = "endproc,if,endif,while,endwhile,for,next"
 		self.keywords = [x for x in self.keywords.split(",") if x != ""]
 	#
 	#		Assemble an array of strings.
@@ -60,16 +60,20 @@ class AssemblerWorker(object):
 			AssemblerException.LINE = src[0].count("~")+1					# set line correctly
 			del src[0]														# remove that part.
 		assert len(src) % 2 == 0											# pairs on defs / bodies
+		#
 		for p in range(0,len(src),2):										# go through in pairs.
 			self.locals = {}												# new locals (static)
 			src[p+1] = self.elementProcess(src[p+1],":local(&):")			# extract all locals.
 			self.processHeader(src[p])										# process the header
 			src[p+1] = self.processIdentifiers(src[p+1])					# replace identifiers.
+			self.structureStack = [ ["marker"] ]							# structure stack.
 			for cmd in [x for x in src[p+1].split(":") if x != ""]:			# work through commands
 				if cmd == "~": 												# tracking source position
 					AssemblerException.LINE += 1
-				else:
-					print(AssemblerException.LINE,cmd)
+				else:														# one command
+					self.assembleInstruction(cmd)
+			if len(self.structureStack) != 1:								# stack okay
+				raise AssemblerException("Structure imbalance")
 	#
 	#		Process procedure definition. Split up, create parameter variables
 	#		Mark procedure start, store passed values in local variables.
@@ -92,6 +96,45 @@ class AssemblerWorker(object):
 		#
 		for i in range(0,len(paramAddresses)):								# code to save passed params
 			self.codeGen.storeParamRegister(i,paramAddresses[i])			# into their local variables.
+	#
+	#		Assemble an instruction
+	#
+	def assembleInstruction(self,cmd):
+		print("{0} {1} {0}".format("===========",cmd))
+		if cmd == "endproc":												# end of procedure
+			self.codeGen.returnSubroutine()
+		else:																
+			m = re.match("^\@(\d+)\((.*?)\)$",cmd) 							# check procedure call
+			if m is not None:
+				params = [x for x in m.group(2).split(",") if x != ""]		# parameters
+				for i in range(0,len(params)):								# copy to registers
+					mp = re.match("^(\@?)(\d+)$",params[i])
+					if mp is None:
+						raise AssemblerException("Bad parameter "+params[i])
+					self.codeGen.loadParamRegister(i,mp.group(1)=="",int(mp.group(2)))
+				self.codeGen.callSubroutine(int(m.group(1)))				# call code.
+			else:
+				self.assembleExpression(cmd)								# else try as expression
+	#
+	#		Assemble an expression.
+	#
+	def assembleExpression(self,expr):
+		expr = [x for x in re.split("(\@?\d+)",expr) if x != ""]			# seperate around terms
+		pendingOp = None 													# no pending operation.
+		for term in expr:													# look at expr parts
+			m = re.match("^(\@?)(\d+)$",term)								# figure it out
+			if m is None:													# operator
+				if "+-*/%&|^?!>".find(term) < 0 or pendingOp is not None:	# okay ?
+					raise AssemblerException("Syntax Error "+term)
+				pendingOp = term
+			else:
+				if pendingOp is None:										# load operator
+					self.codeGen.loadDirect(m.group(1) == "",int(m.group(2)))
+				else:														# operation.
+					if pendingOp == ">" and m.group(1) == "":				# special case
+						raise AssemblerException("> must operate on variable")
+					self.codeGen.binaryOperation(pendingOp,m.group(1) == "",int(m.group(2)))
+				pendingOp = None
 
 	#
 	#		Handle definitions that match a r-ex and are subsequently removed. Used
@@ -113,11 +156,11 @@ class AssemblerWorker(object):
 	#		and the groups of the match.
 	#
 	def elementProcessHandler(self,section,matchGroups):
-		if section.startswith(":global"):
+		if section.startswith(":global"):									# global <name>
 			if matchGroups[0] in self.globals:
 				raise AssemblerException("Duplicate Global "+matchGroups[0])
 			self.globals[matchGroups[0]] = self.codeGen.allocVar(matchGroups[0]+" (G)")
-		elif section.startswith(":local"):
+		elif section.startswith(":local"):									# local <name>
 			if matchGroups[0] in self.locals:
 				raise AssemblerException("Duplicate Local "+matchGroups[0])
 			self.locals[matchGroups[0]] = self.codeGen.allocVar(matchGroups[0])
@@ -137,7 +180,7 @@ class AssemblerWorker(object):
 						raise AssemblerException("Unknown identifier "+parts[i])
 					address = self.locals[parts[i]]
 				parts[i] = "@"+str(address)
-		return "".join(parts).replace("@@","@")								# rebuild, handle @var
+		return "".join(parts).replace("@@","")								# rebuild, handle @var
 	#
 	#		Replace all quoted strings with addresses
 	#
@@ -150,24 +193,22 @@ class AssemblerWorker(object):
 
 if __name__ == "__main__":
 	src = """
-	global p1
-	global p2
-	global a
 
 	proc demo(p1,p2)			// Comments
 		local l1:global g1
-		p1@4>l1:g1+l1>g1:p1!g1
+		p1?g1>l1:g1?2+l1>g1:p1!g1
 		"hello">g1
 	endproc
 
 	proc d2()
 		local c1:global h2
-		"test">c1
+		"test"*3/2%4>c1
 		demo(1,3):+c1-4!@h2
 	endproc
 
 	proc d3(a)
 		demo(a,69)
+		4>a
 	endproc
 	""".split("\n")
 	cg = DemoCodeGenerator()
@@ -175,3 +216,6 @@ if __name__ == "__main__":
 	aw.assemble(src)
 	print(aw.globals)
 	#aw.codeGen.image.save()
+
+# TODO: WHILE/ENDWHILE IF/ENDIF FOR/NEXT
+
