@@ -1,3 +1,4 @@
+
 Expressions
 ===========
 
@@ -55,3 +56,4 @@ for(expr):next 									Repeat n times, available in index, if defined. Counts n
 
 // is a comment.
 
+Apart from in asciiz strings, case is ignored.
