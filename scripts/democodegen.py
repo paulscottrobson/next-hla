@@ -36,21 +36,12 @@ class DemoCodeGenerator(object):
 		self.pc += 1
 	#
 	#		Do a binary operation on a constant or variable on the accumulator
+	#							+ - * / % 		& | ^ 		!
 	#
 	def binaryOperation(self,operator,isConstant,value):
-		if operator == "?":
+		if operator == "!":
 			self.binaryOperation("+",isConstant,value)
 			print("${0:06x}  lda.w [a]".format(self.pc))
-			self.pc += 1
-		elif operator == ">":
-			assert not isConstant
-			print("${0:06x}  sta   (${1:04x})".format(self.pc,value))
-			self.pc += 1
-		elif operator == "!":
-			print("${0:06x}  tab".format(self.pc+1))
-			self.pc += 1
-			self.loadDirect(isConstant,value)
-			print("${0:06x}  stb   [a]".format(self.pc+1))
 			self.pc += 1
 		else:					
 			src = ("#${0:04x}" if isConstant else "(${0:04x})").format(value)
@@ -76,7 +67,7 @@ class DemoCodeGenerator(object):
 	def allocVar(self,name = None):
 		addr = self.pc
 		self.pc += self.getWordSize()
-		print("${0:06x}  dw    $0000 ; {1}".format(addr,"" if name is None else name))
+		print("${0:06x}  dw    $0000 ; {1} {0}".format(addr,"" if name is None else name))
 		return addr
 	#
 	#		Load parameter constant/variable to a temporary area,

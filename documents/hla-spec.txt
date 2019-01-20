@@ -18,25 +18,18 @@ All operators are binary
 
 + - * / 						arithmetic
 & | ^							binary (values, not logical)
-@ 								indirect lookup 
-!								indirect write to rhs
->								direct write to rhs (constant causes error)
+! 								indirect lookup 
 
 Identifiers
 ===========
 
-first character _ a-z
-remainder 		_ . a-z 0-9
-
-Constants
-=========
-
-?
+first character $ a-z
+remainder 		_  a-z 0-9
 
 Variables
 =========
 
-Defined by local <var> and global <var> in source.
+Identifiers, procedures and variables are defined by usage. global variables have a '$' prefix. All procedures are global.
 
 Procedures
 ==========
@@ -44,20 +37,21 @@ Procedures
 procedures are defined with proc <name>(<parameter list>) 
 endproc compiles return, it does not enclose procedure code
 procedures are called with <name>(<terms>)	
-return values are through the HL trick.
+
 all procedures xxxx_boot() are called without parameters, in order, in the main program.
 
-xxxx.boot(a,b,c) may be used for oop extension, where it is syntactically changed to 
-<type>.boot(xxxx,a,b,c)
+xxxx.boot(a,b,c) may be used for oop extension, where it is syntactically changed to <type>.boot(xxxx,a,b,c)
 
-Typing mechanism ? class object reserved as keywords.
-
-Structures
+Instructions
 ==========
+<variable> = <expr>								Assignment
+<variable>!<term> = <expr>
+<name>(parameters)								Invoke procedure
 while(expr[#<=]0):endwhile						Conditional loop
 if(expr[#<=0]):endif							Code test
-for(expr):next 									Repeat n times, available at loop start.
+for(expr):next 									Repeat n times, available in index, if defined. Counts n-1 to 0.sw
 
 : or new line seperates instructions
+
 // is a comment.
 
